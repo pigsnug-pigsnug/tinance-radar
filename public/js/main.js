@@ -59,7 +59,7 @@ async function boot() {
     const data = await api('/api/state');
     applyBootstrap(data);
     render({ force: true });
-    connectStream(() => scheduleRender());
+    connectStream((kind) => scheduleRender(kind || 'all'));
   } catch (error) {
     state.error = error.message;
     state.ready = true;

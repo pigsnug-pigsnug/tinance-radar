@@ -1,4 +1,4 @@
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 function queue(persist) {
@@ -22,35 +22,55 @@ export function parseServiceAccount(raw) {
   return JSON.parse(text);
 }
 
+async function readState(file) {
+  try {
+    const raw = await readFile(file, 'utf8');
+    const data = JSON.parse(raw);
+    if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
+    return data;
+  } catch (error) {
+    if (error.code !== 'ENOENT') {
+      console.warn(`[tinance-radar] state unreadable (${path.basename(file)}):`, error.message);
+    }
+    return null;
+  }
+}
+
 export function createFilePersist(dir) {
   const file = path.join(dir, 'state.json');
+  const bak = `${file}.bak`;
   let memory = null;
   const persist = {
     mode: 'file',
     async load() {
-      try {
-        const raw = await readFile(file, 'utf8');
-        memory = JSON.parse(raw);
+      const primary = await readState(file);
+      if (primary) {
+        memory = primary;
         return memory;
-      } catch (error) {
-        if (error.code === 'ENOENT') return null;
-        console.warn('[tinance-radar] state file unreadable:', error.message);
-        return null;
       }
+      const backup = await readState(bak);
+      if (backup) {
+        console.warn('[tinance-radar] recovered state from backup');
+        memory = backup;
+        return memory;
+      }
+      return null;
     },
     async save(partial) {
-      if (!memory) {
-        try {
-          memory = JSON.parse(await readFile(file, 'utf8'));
-        } catch {
-          memory = {};
-        }
-      }
+      if (!memory) memory = (await readState(file)) || (await readState(bak)) || {};
       if (partial.snapshot) memory.snapshot = partial.snapshot;
       if (partial.user) memory.user = partial.user;
       await mkdir(dir, { recursive: true });
       const tmp = `${file}.tmp`;
-      await writeFile(tmp, JSON.stringify(memory));
+      const json = JSON.stringify(memory);
+      await writeFile(tmp, json);
+      if (await readState(file)) {
+        try {
+          await copyFile(file, bak);
+        } catch (error) {
+          if (error.code !== 'ENOENT') console.warn('[tinance-radar] backup skipped:', error.message);
+        }
+      }
       await rename(tmp, file);
     },
   };

@@ -1,4 +1,5 @@
 import { load } from 'cheerio';
+import { xSearchUrl } from '../links.js';
 import { getText } from '../net.js';
 import { keep, toItem } from './shape.js';
 
@@ -16,7 +17,7 @@ function fromTrends24(html) {
         toItem({
           source: 'x',
           title,
-          url: href,
+          url: xSearchUrl(title),
           summary: 'Trending on X right now · trends24.in United States',
           publishedAt: Date.now(),
         }),
@@ -39,7 +40,7 @@ function fromGetDayTrends(html) {
       toItem({
         source: 'x',
         title,
-        url: href.startsWith('http') ? href : `https://getdaytrends.com${href}`,
+        url: xSearchUrl(title),
         summary: 'Trending on X · getdaytrends.com (trends24 was blocked)',
         publishedAt: Date.now(),
       }),

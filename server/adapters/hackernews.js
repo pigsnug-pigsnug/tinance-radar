@@ -1,3 +1,5 @@
+import { config } from '../config.js';
+import { engagementHits, keepHnStory } from '../engagement.js';
 import { getJson } from '../net.js';
 import { parseTime } from '../time.js';
 import { keep, toItem } from './shape.js';
@@ -30,13 +32,15 @@ export default {
       }
     });
     const items = keep(
-      stories.filter(Boolean).map((story) =>
+      stories.filter((story) => keepHnStory(story, config.hnMinPoints)).map((story) =>
         toItem({
           source: 'hackernews',
           title: story.title,
           url: story.url || `https://news.ycombinator.com/item?id=${story.id}`,
+          urlBase: 'https://news.ycombinator.com/',
           summary: `${story.score || 0} points · ${story.descendants || 0} comments · ${story.by || 'hn'}`,
           publishedAt: parseTime(story.time),
+          hits: engagementHits({ points: story.score, comments: story.descendants }),
         }),
       ),
     );

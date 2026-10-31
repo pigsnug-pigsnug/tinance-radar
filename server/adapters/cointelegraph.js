@@ -20,6 +20,7 @@ export default {
             source: 'cointelegraph',
             title: item.title,
             url: item.link,
+            urlBase: 'https://cointelegraph.com/',
             summary: item.summary,
             publishedAt: parseTime(item.pubDate),
             tags: ['solana'],

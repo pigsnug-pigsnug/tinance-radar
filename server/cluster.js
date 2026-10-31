@@ -240,12 +240,28 @@ export function createCluster(options = {}) {
         seen: [...seen.entries()].slice(-4000).map(([id, ts]) => ({ id, ts })),
       };
     },
+    scrubKeys(isUseful) {
+      if (typeof isUseful !== 'function') return;
+      for (const topic of topics.values()) {
+        for (const key of Object.keys(topic.keys || {})) {
+          if (isUseful(key)) continue;
+          if (keyIndex.get(key) === topic.id) keyIndex.delete(key);
+          delete topic.keys[key];
+        }
+        if (!isUseful(topic.label)) {
+          const better = Object.entries(topic.keys || {}).sort((a, b) => b[1] - a[1] || b[0].length - a[0].length)[0];
+          if (better) topic.label = better[0];
+        }
+      }
+    },
     hydrate(snap) {
       topics.clear();
       keyIndex.clear();
       seen.clear();
       if (!snap) return;
-      for (const topic of snap.topics || []) {
+      const topicRows = Array.isArray(snap.topics) ? snap.topics : [];
+      for (const topic of topicRows) {
+        if (!topic?.id) continue;
         topics.set(topic.id, {
           sources: [],
           keys: {},
@@ -260,9 +276,11 @@ export function createCluster(options = {}) {
           multi: false,
           ...topic,
         });
-        for (const key of Object.keys(topic.keys || {})) keyIndex.set(key, topic.id);
+        const keys = topic.keys && typeof topic.keys === 'object' ? topic.keys : {};
+        for (const key of Object.keys(keys)) keyIndex.set(key, topic.id);
       }
-      for (const row of snap.seen || []) {
+      const seenRows = Array.isArray(snap.seen) ? snap.seen : [];
+      for (const row of seenRows) {
         if (row && row.id) seen.set(row.id, row.ts || 0);
       }
     },

@@ -20,6 +20,7 @@ export default {
             source: 'decrypt',
             title: item.title,
             url: item.link,
+            urlBase: 'https://decrypt.co/',
             summary: item.summary,
             publishedAt: parseTime(item.pubDate),
             tags: ['solana'],

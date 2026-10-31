@@ -8,13 +8,47 @@ import { state } from './state.js';
 
 let frame = 0;
 let queued = false;
+let held = false;
+const pending = new Set();
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('pointerdown', () => {
+    held = true;
+  });
+  const release = () => {
+    setTimeout(() => {
+      held = false;
+      if (pending.size) scheduleRender();
+    }, 0);
+  };
+  window.addEventListener('pointerup', release);
+  window.addEventListener('pointercancel', release);
+}
 
 function isEditing(root) {
   const active = document.activeElement;
   return Boolean(active && root?.contains(active) && ['INPUT', 'TEXTAREA', 'SELECT'].includes(active.tagName));
 }
 
-export function render({ force = false } = {}) {
+export function render({ force = false, scope = 'all' } = {}) {
+  try {
+    if (scope === 'market') {
+      renderMarket();
+      paintMeta();
+      return;
+    }
+    if (scope === 'radar' && state.tab !== 'radar') {
+      paintMeta();
+      return;
+    }
+    renderView({ force });
+  } catch (error) {
+    state.banner = error?.message || 'The desk hit a render error';
+    paintMeta();
+  }
+}
+
+function renderView({ force = false } = {}) {
   document.documentElement.dataset.theme = state.tab === 'sol' ? 'sol' : 'night';
   renderMarket();
   paintChrome();
@@ -38,11 +72,21 @@ export function render({ force = false } = {}) {
   if (logout) logout.hidden = !state.config.auth;
 }
 
-export function scheduleRender() {
+export function scheduleRender(scope = 'all') {
+  pending.add(scope);
+  if (held) return;
   if (frame) return;
   frame = requestAnimationFrame(() => {
     frame = 0;
-    render();
+    const scopes = new Set(pending);
+    pending.clear();
+    if (scopes.has('all') || scopes.size === 0) render();
+    else if (scopes.has('radar') && scopes.size === 1) render({ scope: 'radar' });
+    else if (scopes.has('market') && !scopes.has('radar')) render({ scope: 'market' });
+    else if (scopes.has('radar') && scopes.has('market')) {
+      renderMarket();
+      render({ scope: 'radar' });
+    } else render();
   });
 }
 

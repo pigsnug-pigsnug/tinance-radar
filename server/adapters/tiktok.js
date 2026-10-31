@@ -1,4 +1,5 @@
 import { load } from 'cheerio';
+import { tiktokSearchUrl } from '../links.js';
 import { getJson, getText } from '../net.js';
 import { keep, toItem } from './shape.js';
 
@@ -24,7 +25,7 @@ async function fromTrends24() {
             toItem({
               source: 'tiktok',
               title,
-              url: $(el).attr('href') || url,
+              url: tiktokSearchUrl(title),
               summary: 'TikTok trend via trends24',
               publishedAt: Date.now(),
             }),
@@ -53,7 +54,7 @@ async function fromCreativeCenter() {
       return toItem({
         source: 'tiktok',
         title: `#${name}`,
-        url: `https://www.tiktok.com/tag/${encodeURIComponent(name)}`,
+        url: tiktokSearchUrl(name),
         summary: `TikTok hashtag · ${Number(row.video_views || row.publish_cnt || 0).toLocaleString('en-US')} views`,
         publishedAt: Date.now(),
       });
@@ -79,7 +80,7 @@ async function fromExploding() {
       toItem({
         source: 'tiktok',
         title,
-        url: new URL(href, 'https://explodingtopics.com').href,
+        url: tiktokSearchUrl(title),
         summary: `Exploding Topics ${match[2]}. TikTok hashtag list was unreachable, so this is the public growth board.`,
         publishedAt: Date.now(),
       }),

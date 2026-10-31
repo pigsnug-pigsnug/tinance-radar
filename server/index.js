@@ -11,6 +11,10 @@ import { startPump } from './live/pump.js';
 import { startMarket } from './market.js';
 import { buildApp } from './app.js';
 
+process.on('unhandledRejection', (error) => {
+  console.error('[tinance-radar] unhandled rejection:', error?.message || error);
+});
+
 const persist = await createPersist(config.dataDir);
 const bus = createBus();
 const cluster = createCluster({
@@ -18,7 +22,11 @@ const cluster = createCluster({
   minSources: config.minSources,
 });
 const store = createStore({ cluster, persist, bus, config });
-await store.hydrate();
+try {
+  await store.hydrate();
+} catch (error) {
+  console.warn('[tinance-radar] hydrate failed, starting empty:', error.message);
+}
 store.startAutosave();
 
 const status = new Map();

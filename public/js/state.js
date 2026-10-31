@@ -127,12 +127,16 @@ export function visibleItems() {
 }
 
 export function hotTopics(limit = 8) {
-  return [...state.topics.values()].sort((a, b) => b.score - a.score).slice(0, limit);
+  return [...state.topics.values()]
+    .filter((topic) => topic && topic.useful !== false && topic.label)
+    .sort((a, b) => (b.score || 0) - (a.score || 0))
+    .slice(0, limit);
 }
 
 export function wordCloud() {
   const acc = new Map();
   for (const topic of state.topics.values()) {
+    if (topic?.useful === false) continue;
     const weight = Math.max(1, topic.score);
     if (topic.label) acc.set(topic.label, (acc.get(topic.label) || 0) + weight * 1.3);
     for (const phrase of topic.phrases || []) acc.set(phrase, (acc.get(phrase) || 0) + weight);

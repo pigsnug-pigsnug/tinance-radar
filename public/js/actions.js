@@ -237,8 +237,10 @@ const handlers = {
 export function bindActions() {
   document.addEventListener('click', (event) => {
     const pop = document.getElementById('pop');
-    const button = event.target.closest('[data-action]');
-    if (pop && !pop.hidden && !event.target.closest('#pop') && button?.dataset.action !== 'why') {
+    const target = event.target instanceof Element ? event.target : event.target?.parentElement;
+    if (!target) return;
+    const button = target.closest('[data-action]');
+    if (pop && !pop.hidden && !target.closest('#pop') && button?.dataset.action !== 'why') {
       pop.hidden = true;
     }
     if (!button || (button.closest('form[data-action]') && button.type === 'submit')) return;

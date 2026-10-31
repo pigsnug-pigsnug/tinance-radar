@@ -31,25 +31,17 @@ html[data-theme="sol"] {
 html, body { height: 100%; }
 body {
   margin: 0;
-  background:
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
     radial-gradient(900px 420px at 8% -10%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 55%),
-    radial-gradient(700px 380px at 100% 0%, rgba(158, 183, 255, 0.06), transparent 50%),
-    var(--bg);
+    radial-gradient(700px 380px at 100% 0%, rgba(158, 183, 255, 0.06), transparent 50%);
+  background-size: 56px 56px, 56px 56px, auto, auto;
   color: var(--text);
   font-family: var(--sans);
   font-size: 15px;
   line-height: 1.45;
-}
-body::before {
-  content: "";
-  pointer-events: none;
-  position: fixed;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
-  background-size: 56px 56px;
-  mask-image: linear-gradient(to bottom, #000 0%, transparent 72%);
 }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
@@ -326,6 +318,12 @@ html[data-theme="sol"] .sol-mark { color: var(--accent); }
 .prints time, .prints em, .pairs span { font-family: var(--mono); font-size: 12px; color: var(--muted); }
 .prints strong { min-width: 72px; }
 .grad { color: var(--accent); font-style: normal; font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; }
+.narratives { margin: 8px 0 14px; }
+.narratives h3 { margin: 0 0 6px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.narratives ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.narratives li { display: flex; gap: 6px; align-items: baseline; border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; }
+.narratives span { font-family: var(--mono); font-size: 11px; color: var(--accent); }
+.prints a, .pairs a, .koth { font-weight: 560; }
 .cloud { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: baseline; }
 .pill.ok { color: var(--good); border-color: color-mix(in srgb, var(--good) 50%, var(--line)); }
 .pill.bad { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 50%, var(--line)); }
@@ -346,6 +344,9 @@ td select, .sheet select { background: var(--bg); border: 1px solid var(--line);
 .plain-list .paid { opacity: 0.55; }
 #desk-notes, #note-text, #launch-note { width: 100%; resize: vertical; }
 
+dialog:not([open]) {
+  display: none !important;
+}
 dialog {
   width: min(640px, calc(100vw - 24px));
   max-height: min(86vh, 820px);

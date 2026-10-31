@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { dexScreenerUrl, gmgnUrl, pumpFunUrl } from './links.js';
 import { getJson } from './net.js';
 
 function fail(res, error) {
@@ -140,19 +141,25 @@ export function createApi({ store, bus, ingest }) {
     if (q.length < 2) return res.status(400).json({ error: 'query too short' });
     try {
       const data = await getJson(`https://api.dexscreener.com/latest/dex/search?q=${encodeURIComponent(q)}`);
-      const pairs = (data.pairs || []).slice(0, 12).map((pair) => ({
-        chain: pair.chainId,
-        dex: pair.dexId,
-        name: `${pair.baseToken?.symbol || '?'}/${pair.quoteToken?.symbol || '?'}`,
-        base: pair.baseToken?.name || '',
-        symbol: pair.baseToken?.symbol || '',
-        address: pair.baseToken?.address || '',
-        price: pair.priceUsd || null,
-        vol: pair.volume?.h24 ?? null,
-        liq: pair.liquidity?.usd ?? null,
-        change: pair.priceChange?.h24 ?? null,
-        url: pair.url || '',
-      }));
+      const pairs = (data.pairs || []).slice(0, 12).map((pair) => {
+        const address = pair.baseToken?.address || '';
+        const gmgn = pair.chainId === 'solana' ? gmgnUrl(address) : '';
+        return {
+          chain: pair.chainId,
+          dex: pair.dexId,
+          name: `${pair.baseToken?.symbol || '?'}/${pair.quoteToken?.symbol || '?'}`,
+          base: pair.baseToken?.name || '',
+          symbol: pair.baseToken?.symbol || '',
+          address,
+          price: pair.priceUsd || null,
+          vol: pair.volume?.h24 ?? null,
+          liq: pair.liquidity?.usd ?? null,
+          change: pair.priceChange?.h24 ?? null,
+          url: gmgn || pair.url || '',
+          dexUrl: pair.url || (gmgn ? dexScreenerUrl(address) : ''),
+          pumpUrl: gmgn && /pump$/i.test(address) ? pumpFunUrl(address) : '',
+        };
+      });
       res.json({ pairs });
     } catch (error) {
       res.status(502).json({ error: error.message || 'dexscreener unavailable' });

@@ -1,3 +1,5 @@
+import { engagementHits } from '../engagement.js';
+import { gmgnUrl } from '../links.js';
 import { getJson } from '../net.js';
 import { keep, toItem } from './shape.js';
 
@@ -49,7 +51,8 @@ export default {
         toItem({
           source: 'dexscreener',
           title: `Boosted $${label}`,
-          url: row.url,
+          url: gmgnUrl(row.tokenAddress) || row.url,
+          hits: engagementHits({ score: Number(row.totalAmount) || Number(meta?.vol) || 0 }),
           summary: [
             row.description,
             meta?.price ? `$${meta.price}` : '',
@@ -70,7 +73,8 @@ export default {
         toItem({
           source: 'dexscreener',
           title: `New profile $${label}`,
-          url: row.url,
+          url: gmgnUrl(row.tokenAddress) || row.url,
+          hits: engagementHits({ score: Number(row.totalAmount) || Number(meta?.vol) || 0 }),
           summary: row.description || 'Latest Solana token profile on DexScreener',
           publishedAt: Date.now(),
           tags: ['solana'],

@@ -19,7 +19,9 @@ export function decodeXml(raw) {
 }
 
 export function stripTags(value) {
-  return decodeXml(value).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  let text = decodeXml(value);
+  if (text.includes('&')) text = decodeXml(text);
+  return text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
 function pickLink(block) {

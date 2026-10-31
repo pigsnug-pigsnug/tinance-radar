@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import { stableId } from './ids.js';
 import { isUsefulPhrase, mentionsSolana } from './phrases.js';
 import { ALWAYS_SOL_SOURCES } from './config.js';
-import { httpUrl } from './net.js';
+import { canonicalUrl, dexScreenerUrl, pumpFunUrl } from './links.js';
 
 const ITEM_CAP = 400;
 
@@ -41,6 +41,7 @@ function publicTopic(topic, windowMs) {
     firstSeen: topic.firstSeen || 0,
     lastSeen: topic.lastSeen || 0,
     windowH: Math.round((windowMs / 3_600_000) * 10) / 10,
+    useful: isUsefulPhrase(topic.label),
   };
 }
 
@@ -74,6 +75,7 @@ export function createStore({ cluster, persist, bus, config }) {
   };
   const radar = {
     tokens: [],
+    narratives: [],
     graduations: [],
     koth: null,
     connected: false,
@@ -108,7 +110,16 @@ export function createStore({ cluster, persist, bus, config }) {
   function snapshotPayload() {
     const snap = cluster.snapshot();
     const ranked = [...items.values()].sort((a, b) => (b.fetchedAt || 0) - (a.fetchedAt || 0)).slice(0, 300);
-    let payload = { ...snap, items: ranked.map(compactItem), savedAt: Date.now() };
+    let payload = {
+      ...snap,
+      items: ranked.map(compactItem),
+      radar: {
+        tokens: radar.tokens || [],
+        narratives: radar.narratives || [],
+        koth: radar.koth || null,
+      },
+      savedAt: Date.now(),
+    };
     if (JSON.stringify(payload).length > 900_000) {
       payload = {
         ...payload,
@@ -178,12 +189,26 @@ export function createStore({ cluster, persist, bus, config }) {
         console.warn('[tinance-radar] hydrate failed:', error.message);
         return;
       }
-      if (!data) return;
-      if (data.snapshot) {
+      if (!data || typeof data !== 'object') return;
+        if (data.snapshot) {
         cluster.hydrate(data.snapshot);
+        cluster.scrubKeys(isUsefulPhrase);
         items.clear();
         for (const item of data.snapshot.items || []) {
-          if (item?.id) items.set(item.id, item);
+          if (!item?.id) continue;
+          const url = canonicalUrl(item.url);
+          if (!url) continue;
+          items.set(item.id, { ...item, url });
+        }
+        if (data.snapshot.radar && typeof data.snapshot.radar === 'object') {
+          radar.tokens = Array.isArray(data.snapshot.radar.tokens) ? data.snapshot.radar.tokens : [];
+          radar.narratives = Array.isArray(data.snapshot.radar.narratives) ? data.snapshot.radar.narratives : [];
+          radar.koth = data.snapshot.radar.koth || null;
+        }
+        try {
+          cluster.rescore(Date.now());
+        } catch (error) {
+          console.warn('[tinance-radar] rescore after hydrate failed:', error.message);
         }
       }
       const saved = data.user || {};
@@ -207,6 +232,8 @@ export function createStore({ cluster, persist, bus, config }) {
       for (const raw of rawItems || []) {
         const title = String(raw.title || '').replace(/\s+/g, ' ').trim();
         if (title.length < 3) continue;
+        const url = canonicalUrl(raw.url, raw.urlBase);
+        if (!url) continue;
         const source = String(raw.source || 'unknown').toLowerCase();
         const id = stableId(source, title);
         const existing = items.get(id);
@@ -222,7 +249,7 @@ export function createStore({ cluster, persist, bus, config }) {
           id,
           source,
           title,
-          url: httpUrl(raw.url),
+          url,
           summary: String(raw.summary || '').replace(/\s+/g, ' ').trim().slice(0, 360),
           publishedAt: Number(raw.publishedAt) || now,
           fetchedAt: now,
@@ -239,7 +266,15 @@ export function createStore({ cluster, persist, bus, config }) {
           alerts.push({ itemId: id, word, title: item.title, source });
         }
         if (raw.extra?.kind === 'koth') {
-          radar.koth = { ...compact, marketCap: raw.extra.marketCap || 0, symbol: raw.extra.symbol || '' };
+          const mint = raw.extra.mint || '';
+          radar.koth = {
+            ...compact,
+            mint,
+            marketCap: raw.extra.marketCap || 0,
+            symbol: raw.extra.symbol || '',
+            pumpUrl: mint ? pumpFunUrl(mint) : '',
+            dexUrl: mint ? dexScreenerUrl(mint) : '',
+          };
           radarDirty = true;
         }
         if (raw.extra?.kind === 'graduation') {
@@ -308,7 +343,7 @@ export function createStore({ cluster, persist, bus, config }) {
         id: String(item.id).slice(0, 40),
         source: String(item.source || '').slice(0, 40),
         title: String(item.title).slice(0, 300),
-        url: httpUrl(item.url),
+        url: canonicalUrl(item.url),
         summary: String(item.summary || '').slice(0, 400),
         publishedAt: Number(item.publishedAt) || 0,
         fetchedAt: Number(item.fetchedAt) || Date.now(),
@@ -376,7 +411,7 @@ export function createStore({ cluster, persist, bus, config }) {
         openedAt: Date.now(),
         itemId,
         title: String(input.title || '').slice(0, 240),
-        url: httpUrl(input.url),
+        url: canonicalUrl(input.url),
         source: String(input.source || '').slice(0, 40),
         topicId: String(input.topicId || '').slice(0, 40),
         topicLabel: String(input.topicLabel || '').slice(0, 80),

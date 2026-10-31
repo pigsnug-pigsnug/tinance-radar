@@ -1,3 +1,5 @@
+import { config } from '../config.js';
+import { engagementHits, keepHnStory } from '../engagement.js';
 import { getJson } from '../net.js';
 import { parseTime } from '../time.js';
 import { keep, toItem } from './shape.js';
@@ -12,16 +14,20 @@ export default {
     const hits = data?.hits || [];
     if (!Array.isArray(hits)) throw new Error('invalid algolia payload');
     return keep(
-      hits.map((hit) =>
-        toItem({
-          source: 'hn-solana',
-          title: hit.title,
-          url: hit.url || `https://news.ycombinator.com/item?id=${hit.objectID}`,
-          summary: `${hit.points || 0} points · Algolia · solana`,
-          publishedAt: parseTime(hit.created_at),
-          tags: ['solana'],
-        }),
-      ),
+      hits
+        .filter((hit) => keepHnStory({ score: hit.points }, config.hnSolanaMinPoints))
+        .map((hit) =>
+          toItem({
+            source: 'hn-solana',
+            title: hit.title,
+            url: hit.url || `https://news.ycombinator.com/item?id=${hit.objectID}`,
+            urlBase: 'https://news.ycombinator.com/',
+            summary: `${hit.points || 0} points · Algolia · solana`,
+            publishedAt: parseTime(hit.created_at),
+            tags: ['solana'],
+            hits: engagementHits({ points: hit.points, comments: hit.num_comments }),
+          }),
+        ),
     );
   },
 };

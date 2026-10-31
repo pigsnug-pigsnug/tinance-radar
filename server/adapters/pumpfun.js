@@ -1,3 +1,4 @@
+import { gmgnUrl } from '../links.js';
 import { getJson } from '../net.js';
 import { keep, toItem } from './shape.js';
 
@@ -44,13 +45,13 @@ export default {
         toItem({
           source: 'pumpfun',
           title: `King of the hill: ${name}${coin.symbol ? ` ($${coin.symbol})` : ''}`,
-          url: coin.mint ? `https://pump.fun/coin/${coin.mint}` : 'https://pump.fun',
+          url: gmgnUrl(coin.mint),
           summary: coin.usd_market_cap
             ? `Market cap $${Math.round(coin.usd_market_cap).toLocaleString('en-US')}`
             : 'pump.fun king of the hill',
           publishedAt: Date.now(),
           tags: ['solana'],
-          extra: { kind: 'koth', symbol: coin.symbol || '', marketCap: coin.usd_market_cap || 0 },
+          extra: { kind: 'koth', symbol: coin.symbol || '', marketCap: coin.usd_market_cap || 0, mint: coin.mint || '' },
         }),
       );
     } catch (error) {
@@ -67,7 +68,7 @@ export default {
           toItem({
             source: 'pumpfun',
             title: `Graduated ${name}${coin.symbol ? ` ($${coin.symbol})` : ''}`,
-            url: coin.mint ? `https://pump.fun/coin/${coin.mint}` : 'https://pump.fun',
+            url: gmgnUrl(coin.mint),
             summary: 'Completed the pump.fun bonding curve',
             publishedAt: coin.last_trade_timestamp ? coin.last_trade_timestamp * 1000 : Date.now(),
             tags: ['solana'],

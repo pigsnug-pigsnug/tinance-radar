@@ -15,21 +15,49 @@ export function renderRadar(stage) {
   if (!editing(tools)) renderTools(tools);
 }
 
+function coinLabel(token) {
+  const symbol = String(token.symbol || '').replace(/^\$/, '').trim();
+  const name = String(token.name || '').trim();
+  const symbolOk = symbol && symbol.toLowerCase() !== 'coin';
+  const nameOk = name && name.toLowerCase() !== 'coin';
+  if (symbolOk) return `$${symbol}`;
+  if (nameOk) return name;
+  if (token.mint) return `${token.mint.slice(0, 4)}…${token.mint.slice(-4)}`;
+  return 'coin';
+}
+
 function renderPrints(root) {
   const scroll = root.scrollTop;
   const tokens = state.radar?.tokens || [];
   const koth = state.radar?.koth;
   const live = state.radar?.connected;
+  const narratives = state.radar?.narratives || [];
   root.innerHTML = `
     <header class="panel-head">
       <h2>pump.fun</h2>
-      <span class="pill ${live ? 'ok' : 'bad'}">${live ? 'socket live' : 'socket down'}</span>
+      <span class="pill ${live ? 'ok' : 'bad'}">${live ? 'signal' : 'socket down'}</span>
     </header>
+    <p class="hint">Traction only: graduated, near graduation, king of the hill, or a real burst of buys. Fresh mints stay off this list.</p>
+    ${
+      narratives.length
+        ? `<section class="narratives">
+            <h3>Narrative clusters</h3>
+            <ul>${narratives
+              .map((row) => {
+                const href = safeUrl(row.url);
+                const label = esc(row.label);
+                return `<li>${href ? `<a href="${href}" target="_blank" rel="noopener noreferrer">${label}</a>` : `<strong>${label}</strong>`}<span>× ${row.count}</span></li>`;
+              })
+              .join('')}</ul>
+          </section>`
+        : ''
+    }
     ${
       koth
         ? `<a class="koth" href="${safeUrl(koth.url) || '#'}" target="_blank" rel="noopener noreferrer">
             <span>King of the hill</span>
-            <strong>${esc(koth.title)}</strong>
+            <strong>${esc(koth.symbol ? `$${koth.symbol}` : koth.title || koth.name || '')}</strong>
+            ${koth.marketCapSol ? `<em>${Number(koth.marketCapSol).toFixed(1)} SOL</em>` : ''}
           </a>`
         : ''
     }
@@ -38,20 +66,25 @@ function renderPrints(root) {
         ? `<ol class="prints">${tokens
             .map((token) => {
               const href = safeUrl(token.url);
-              const name = token.symbol ? `$${esc(token.symbol)}` : esc(token.name);
+              const pump = safeUrl(token.pumpUrl);
+              const dex = safeUrl(token.dexUrl);
+              const name = esc(coinLabel(token));
+              const kind =
+                token.kind === 'graduation' ? 'graduated' : token.kind === 'koth' ? 'koth' : token.kind === 'near-grad' ? 'near grad' : 'moving';
               return `<li>
                 <time>${ago(token.ts)}</time>
-                <strong>${name}</strong>
-                <span>${esc(token.name)}</span>
+                <strong>${href ? `<a href="${href}" target="_blank" rel="noopener noreferrer">${name}</a>` : name}</strong>
+                <span>${esc(token.name && token.name.toLowerCase() !== 'coin' ? token.name : '')}</span>
                 <em>${token.marketCapSol ? `${Number(token.marketCapSol).toFixed(1)} SOL` : ''}</em>
-                ${token.kind === 'graduation' ? '<b class="grad">graduated</b>' : ''}
-                ${href ? `<a href="${href}" target="_blank" rel="noopener noreferrer">open</a>` : ''}
+                <b class="grad">${kind}</b>
+                ${pump ? `<a href="${pump}" target="_blank" rel="noopener noreferrer">pump</a>` : ''}
+                ${dex ? `<a href="${dex}" target="_blank" rel="noopener noreferrer">dex</a>` : ''}
               </li>`;
             })
             .join('')}</ol>`
         : `<div class="empty tight">
-            <h2>${live ? 'Waiting for the next create' : 'pump.fun socket is reconnecting'}</h2>
-            <p>${esc(state.radar?.error || 'New mints show up here. Graduations also land on Pulse.')}</p>
+            <h2>${live ? 'No coin is clearing the bar' : 'pump.fun socket is reconnecting'}</h2>
+            <p>${esc(state.radar?.error || 'Creates are counted for narratives. A row appears after graduation, king of the hill, a market-cap move, or a burst of buys.')}</p>
           </div>`
     }`;
   root.scrollTop = scroll;
@@ -87,11 +120,16 @@ function renderTools(root) {
           ? `<ul class="pairs">${coin.pairs
               .map((pair) => {
                 const href = safeUrl(pair.url);
+                const dex = safeUrl(pair.dexUrl);
+                const pump = safeUrl(pair.pumpUrl);
                 const change = Number(pair.change);
                 const cls = change > 0 ? 'up' : change < 0 ? 'down' : '';
+                const title = href
+                  ? `<a href="${href}" target="_blank" rel="noopener noreferrer">${esc(pair.name)}</a>`
+                  : esc(pair.name);
                 return `<li>
                   <div>
-                    <strong>${esc(pair.name)}</strong>
+                    <strong>${title}</strong>
                     <span>${esc(pair.chain || '')} · ${esc(pair.dex || '')}</span>
                   </div>
                   <div class="pair-nums">
@@ -99,7 +137,8 @@ function renderTools(root) {
                     <span class="${cls}">${Number.isFinite(change) ? `${change.toFixed(1)}%` : ''}</span>
                     <span>vol ${usd(pair.vol)} · liq ${usd(pair.liq)}</span>
                   </div>
-                  ${href ? `<a href="${href}" target="_blank" rel="noopener noreferrer">Dex</a>` : ''}
+                  ${pump && pump !== href ? `<a href="${pump}" target="_blank" rel="noopener noreferrer">pump</a>` : ''}
+                  ${dex && dex !== href ? `<a href="${dex}" target="_blank" rel="noopener noreferrer">Dex</a>` : ''}
                 </li>`;
               })
               .join('')}</ul>`

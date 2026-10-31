@@ -16,6 +16,7 @@ export default {
           source: 'aljazeera',
           title: item.title,
           url: item.link,
+          urlBase: 'https://www.aljazeera.com/',
           summary: item.summary,
           publishedAt: parseTime(item.pubDate),
         }),

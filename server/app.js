@@ -32,6 +32,22 @@ export function buildApp({ store, bus, ingest }) {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'same-origin');
     res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader(
+      'Content-Security-Policy',
+      [
+        "default-src 'self'",
+        "script-src 'self'",
+        "style-src 'self' https://fonts.googleapis.com",
+        "style-src-attr 'unsafe-inline'",
+        "font-src https://fonts.gstatic.com data:",
+        "img-src 'self' data: https:",
+        "connect-src 'self'",
+        "base-uri 'self'",
+        "form-action 'self'",
+        "frame-ancestors 'none'",
+        "object-src 'none'",
+      ].join('; '),
+    );
     next();
   });
 

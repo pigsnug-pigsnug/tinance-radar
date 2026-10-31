@@ -27,6 +27,7 @@ export default {
             source: 'youtube',
             title: item.title,
             url: item.link,
+            urlBase: 'https://www.youtube.com/',
             summary: 'YouTube',
             publishedAt: parseTime(item.pubDate),
             tags: sol ? ['solana'] : [],

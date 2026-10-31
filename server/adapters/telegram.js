@@ -14,26 +14,27 @@ export default {
       channels.map(async (channel) => {
         const html = await getText(`https://t.me/s/${encodeURIComponent(channel)}`, { browser: true });
         const $ = load(html);
-        const texts = $('.tgme_widget_message_text').toArray();
-        const links = $('a.tgme_widget_message_date').toArray();
-        if (!texts.length) throw new Error(`empty @${channel}`);
-        const start = Math.max(0, texts.length - 8);
+        const messages = $('.tgme_widget_message').toArray();
+        if (!messages.length) throw new Error(`empty @${channel}`);
+        const start = Math.max(0, messages.length - 8);
         const items = [];
-        for (let i = start; i < texts.length; i += 1) {
-          const text = $(texts[i]).text().replace(/\s+/g, ' ').trim();
+        for (const el of messages.slice(start)) {
+          const text = $(el).find('.tgme_widget_message_text').first().text().replace(/\s+/g, ' ').trim();
           if (text.length < 12) continue;
-          const href = links[i] ? $(links[i]).attr('href') : '';
-          const when = links[i] ? $(links[i]).find('time').attr('datetime') : '';
+          const href = $(el).find('a.tgme_widget_message_date').attr('href') || '';
+          const when = $(el).find('a.tgme_widget_message_date time').attr('datetime') || '';
+          if (!/\/\d+\/?$/.test(href)) continue;
           items.push(
             toItem({
               source: 'telegram',
               title: text.slice(0, 160),
-              url: href || `https://t.me/${channel}`,
+              url: href,
               summary: `@${channel}`,
               publishedAt: parseTime(when) || Date.now(),
             }),
           );
         }
+        if (!items.length) throw new Error(`no message links @${channel}`);
         return items;
       }),
     );

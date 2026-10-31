@@ -57,8 +57,16 @@ export function checkPassword(password) {
   return crypto.timingSafeEqual(a, b);
 }
 
+export function requestIsSecure(req) {
+  const forwarded = String(req?.headers?.['x-forwarded-proto'] || '')
+    .split(',')[0]
+    .trim()
+    .toLowerCase();
+  return Boolean(req?.secure || forwarded === 'https');
+}
+
 export function sessionCookie(token, req) {
-  const secure = Boolean(req.secure || req.headers['x-forwarded-proto'] === 'https');
+  const secure = requestIsSecure(req);
   const parts = [
     `${COOKIE}=${token}`,
     'HttpOnly',
@@ -71,7 +79,7 @@ export function sessionCookie(token, req) {
 }
 
 export function clearCookie(req) {
-  const secure = Boolean(req.secure || req.headers['x-forwarded-proto'] === 'https');
+  const secure = requestIsSecure(req);
   const parts = [`${COOKIE}=`, 'HttpOnly', 'SameSite=Lax', 'Path=/', 'Max-Age=0'];
   if (secure) parts.push('Secure');
   return parts.join('; ');

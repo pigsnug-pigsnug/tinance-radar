@@ -20,33 +20,30 @@ const PLATFORM = new Set(
 );
 
 const NEWSY = new Set(
-  `approved approval update updates report reports breaking launch launched launches listing listed price prices today official incoming massive huge alert alerts surge surges surged soars soaring soar crash crashes crashed dumps dump dumped rally rallies record high low week daily says said could would amid announced announces announcement reveal reveals revealed confirmed confirms confirmation according sources source people world year years time like new news video live post thread market markets trading trade trader traders million billion chart charts prediction predictions analysis first second next last best worst top big small here there now get got make made back still even also across against under between during without within another many much most why how what when where via ahead behind above below near early late tonight tomorrow yesterday monday tuesday wednesday thursday friday saturday sunday january february march april may june july august september october november december`.split(
+  `approved approval update updates report reports breaking launch launched launches listing listed price prices today official incoming massive huge alert alerts surge surges surged soars soaring soar crash crashes crashed dumps dump dumped rally rallies record high low week daily says said could would amid announced announces announcement reveal reveals revealed confirmed confirms confirmation according sources source people world year years time like new news video live post thread market markets trading trade trader traders million billion chart charts prediction predictions analysis first second next last best worst top big small here there now get got make made back still even also across against under between during without within another many much most why how what when where via ahead behind above below near early late tonight tomorrow yesterday monday tuesday wednesday thursday friday saturday sunday january february march april may june july august september october november december mon tue wed thu fri sat sun jan feb mar apr jun jul aug sep sept oct nov dec`.split(
+    /\s+/,
+  ),
+);
+
+/** Generic English that was showing up as "hot topics" (show, took, test, happy, …). */
+const JUNK = new Set(
+  `show showed shown showing took take taken taking test tested testing tests private happy coin coins new newer newest old good bad great best better big small little high low long short hard easy real sure free full public local young important different able right wrong few thing things way man men life hand part place case point home room story fact month lot study book eye job word issue side kind head house service friend power hour game line end member law car city name team minute idea kid body person art war history party result morning reason girl guy guys dude moment air please help helped helping anyone someone something anything everything nothing really actually basically literally gonna wanna lol lmao bro post posts comment comments removed welcome started start starting write wrote written writing read reading build built building using use used call called try tried keep kept let put set run running think thinking know known see seen watch watching give given find found tell told ask asked work working seem seems feel feels become became leave left bring brought begin began hold held turn turned play played move moved live lived happen happened include including follow following create created add added change changed open opened close closed buy bought sell sold send sent meet met learn learned lead led stay fall fallen reach remain suggest raise pass require decide pull look looks looking want wanted need needed going went come came say look looks make makes making going gone done doing does did dont im youre theyre its wasnt isnt arent cant wont should would could might must shall every each both same other another such only own just even still also back much many more most very too quite pretty super mega ultra based using via amid after before over under into from with that this have been were was are not but for and the app website online digital data info information media content user users community members member official latest recent available ready coming soon check checking click share shared join joining follow followers following update updated updates news story stories video videos photo photos image images link links thread threads discussion daily weekly hourly today tonight tomorrow yesterday week weeks month months year years time times day days hour hours people person world money cash fund funds wallet wallets trading trade trades trader traders market markets price prices chart charts pump pumping dumped dumping moon mooning send sending buy buying sell selling launch launching launched listing listed token tokens coin coins crypto cryptos blockchain web3 defi nft nfts memecoin memecoins altcoin altcoins code codes coding developer developers meme memes united profile profiles podcast episode episodes pumpfun`.split(
     /\s+/,
   ),
 );
 
 export const BROAD_TICKERS = new Set(['SOL', 'BTC', 'ETH', 'BNB', 'USDT', 'USDC', 'USD']);
 
+function blocked(token) {
+  return STOP.has(token) || NEWSY.has(token) || BASE.has(token) || PLATFORM.has(token) || JUNK.has(token);
+}
+
 function isStrong(token) {
-  return (
-    token.length >= 4 &&
-    !STOP.has(token) &&
-    !NEWSY.has(token) &&
-    !BASE.has(token) &&
-    !PLATFORM.has(token) &&
-    !/^\d+$/.test(token)
-  );
+  return token.length >= 4 && !blocked(token) && !/^\d+$/.test(token);
 }
 
 function isSpecific(token) {
-  return (
-    token.length >= 3 &&
-    !STOP.has(token) &&
-    !NEWSY.has(token) &&
-    !BASE.has(token) &&
-    !PLATFORM.has(token) &&
-    !/^\d+$/.test(token)
-  );
+  return token.length >= 3 && !blocked(token) && !/^\d+$/.test(token);
 }
 
 export function isUsefulPhrase(phrase) {
@@ -115,7 +112,7 @@ export function extractSignals(title) {
     }
     const properNoun = /^[A-Z][a-z0-9]{2,}$/.test(clean) || /^[A-Z]{2,6}$/.test(clean);
     const lower = clean.toLowerCase();
-    if (properNoun && !STOP.has(lower)) buf.push(lower);
+    if (properNoun && (isStrong(lower) || isSpecific(lower))) buf.push(lower);
     else flush();
     if (buf.length === 3) flush();
   }
