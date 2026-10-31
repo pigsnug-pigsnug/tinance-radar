@@ -1,11 +1,9 @@
 import { api } from './api.js';
-import { armAudioOnGesture } from './alerts.js';
 import { bindActions } from './actions.js';
 import { connectStream } from './sse.js';
 import { applyBootstrap, state } from './state.js';
 import { render, renderIfQueued, scheduleRender, tickClock } from './view.js';
 
-armAudioOnGesture();
 bindActions();
 
 document.getElementById('q')?.addEventListener('input', (event) => {

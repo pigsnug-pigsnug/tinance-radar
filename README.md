@@ -36,7 +36,7 @@ npm test
 
 - **Pulse** — one feed. Breaking or funny stories only, and only after two sources agree. Each card has a short summary, the source links, a coin name and ticker, a launch tweet, Post to X, and three image prompts that open in Grok.
 - **Solana** — a slower scan (about every 12 minutes) for the whole word Solana inside GitHub READMEs, YouTube captions (with a timestamp), and Reddit post bodies.
-- **Desk** — launch log, watch words (they ping in the page), wallets, bills, notes.
+- **Desk** — launch log, wallets, bills, and notes.
 - **Write tweet** — type a narrative and open Grok or Grok Imagine with the style guide already in the link. No API key.
 
 Free sources that answered here: BBC world RSS, Guardian world RSS, Al Jazeera, Wikipedia pageviews, Hacker News, Reddit listings when they are not blocked, getdaytrends for X trend names. AP's RSS returned 403. Reuters' old RSS is gone. trends24 sits behind a Cloudflare check from this network. GitHub code search returns 401 unless `GITHUB_TOKEN` is set; README search works without it. YouTube captions are best-effort and skipped when a video has none. X post counts and reply-to tweet ids are not on the free trend list, so Reply launch appears only when an id is actually known.
@@ -121,7 +121,7 @@ If a host is blocked, that row in **Sources** goes `error` or `open` and the res
    base64 -w0 service-account.json
    ```
 
-4. Collections are created on first write: `radar/snapshot` (topics, buckets, seen ids, recent items) and `radar/user` (stars, saves, notes, watch words, launches, desk). You do not need to create them by hand.
+4. Collections are created on first write: `radar/snapshot` (topics, buckets, seen ids, recent items) and `radar/user` (stars, saves, notes, launches, desk). You do not need to create them by hand.
 
 A snapshot every 5 minutes is about 288 writes a day, far under the Spark free quota, as long as you are not snapshotting on every headline. User edits write the user document only.
 

@@ -66,10 +66,6 @@ export function createApi({ store, bus, ingest }) {
     res.json({ note: store.setNote(req.params.id, req.body?.text, item) });
   });
 
-  router.put('/watchwords', (req, res) => {
-    res.json({ watchwords: store.setWatchwords(req.body?.words) });
-  });
-
   router.post('/launches', (req, res) => {
     const item = store.resolveItem(req.body);
     if (!item) return res.status(400).json({ error: 'item required' });

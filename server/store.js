@@ -55,31 +55,12 @@ function publicTopic(topic, windowMs) {
   };
 }
 
-function escapeReg(value) {
-  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function matchWords(item, words) {
-  const hay = `${item.title}\n${item.summary}`;
-  const hits = [];
-  for (const word of words) {
-    const needle = String(word || '').trim();
-    if (!needle) continue;
-    if (needle.length <= 3) {
-      const re = new RegExp(`(?:^|[^a-z0-9$])${escapeReg(needle)}(?:[^a-z0-9]|$)`, 'i');
-      if (re.test(hay)) hits.push(needle);
-    } else if (hay.toLowerCase().includes(needle.toLowerCase())) hits.push(needle);
-  }
-  return hits;
-}
-
 export function createStore({ cluster, persist, bus, config }) {
   const items = new Map();
   const user = {
     stars: {},
     saves: {},
     notes: {},
-    watchwords: [],
     launches: [],
     desk: { wallets: [], bills: [], notes: '' },
   };
@@ -103,7 +84,6 @@ export function createStore({ cluster, persist, bus, config }) {
       stars: user.stars,
       saves: user.saves,
       notes: user.notes,
-      watchwords: user.watchwords,
       launches: user.launches,
       desk: user.desk,
     };
@@ -166,14 +146,6 @@ export function createStore({ cluster, persist, bus, config }) {
     topic(id) {
       return cluster.get(id);
     },
-    trackedPhrases() {
-      return cluster
-        .list()
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 8)
-        .map((topic) => topic.label)
-        .filter((label) => label && label.length <= 32 && label.length >= 3 && isUsefulPhrase(label));
-    },
     setMarket(next) {
       market = next;
       bus.publish('market', next);
@@ -226,7 +198,6 @@ export function createStore({ cluster, persist, bus, config }) {
       user.stars = saved.stars || {};
       user.saves = saved.saves || {};
       user.notes = saved.notes || {};
-      user.watchwords = Array.isArray(saved.watchwords) ? saved.watchwords : [];
       user.launches = Array.isArray(saved.launches) ? saved.launches : [];
       user.desk = {
         wallets: Array.isArray(saved.desk?.wallets) ? saved.desk.wallets : [],
@@ -246,7 +217,6 @@ export function createStore({ cluster, persist, bus, config }) {
     },
     ingestItems(rawItems, now = Date.now()) {
       const fresh = [];
-      const alerts = [];
       const touched = new Map();
       for (const raw of rawItems || []) {
         const title = String(raw.title || '').replace(/\s+/g, ' ').trim();
@@ -292,9 +262,6 @@ export function createStore({ cluster, persist, bus, config }) {
         const compact = compactItem(item);
         fresh.push(compact);
         if (result.topic) touched.set(result.topic.id, result.topic);
-        for (const word of matchWords(item, user.watchwords)) {
-          alerts.push({ itemId: id, word, title: item.title, source });
-        }
       }
       if (items.size > ITEM_CAP) {
         const ranked = [...items.values()].sort((a, b) => (a.fetchedAt || 0) - (b.fetchedAt || 0));
@@ -310,11 +277,11 @@ export function createStore({ cluster, persist, bus, config }) {
         }
       }
       const topics = [...touched.values()].map((topic) => publicTopic(topic, config.multiWindowMs));
-      if (fresh.length || alerts.length || topics.length) {
-        bus.publish('batch', { items: fresh, topics, alerts });
+      if (fresh.length || topics.length) {
+        bus.publish('batch', { items: fresh, topics, alerts: [] });
         bus.publish('cards', { cards: this.cards(now) });
       }
-      return { fresh, alerts, topics };
+      return { fresh, topics };
     },
     rescore(now = Date.now()) {
       cluster.rescore(now);
@@ -333,7 +300,6 @@ export function createStore({ cluster, persist, bus, config }) {
         stars: user.stars,
         saves: user.saves,
         notes: user.notes,
-        watchwords: user.watchwords,
         launches: user.launches,
         desk: user.desk,
         market,
@@ -402,20 +368,6 @@ export function createStore({ cluster, persist, bus, config }) {
       }
       scheduleUser();
       return user.notes[id] || null;
-    },
-    setWatchwords(words) {
-      const next = [];
-      const seen = new Set();
-      for (const word of words || []) {
-        const clean = String(word || '').trim().slice(0, 40);
-        const key = clean.toLowerCase();
-        if (!clean || seen.has(key) || next.length >= 40) continue;
-        seen.add(key);
-        next.push(clean);
-      }
-      user.watchwords = next;
-      scheduleUser();
-      return next;
     },
     addLaunch(input) {
       const itemId = String(input.itemId || '');

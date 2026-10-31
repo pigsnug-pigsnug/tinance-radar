@@ -13,9 +13,19 @@ import {
   signSession,
 } from './auth.js';
 import { createApi } from './routes.js';
+import { bustModuleSpecifiers } from './assets.js';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
+const publicDir = path.resolve(root, '../public');
 const assetVersion = crypto.randomBytes(4).toString('hex');
+
+function publicFile(urlPath) {
+  const rel = String(urlPath || '').replace(/^\/+/, '');
+  if (!rel || rel.includes('\0')) return null;
+  const file = path.resolve(publicDir, rel);
+  if (file !== publicDir && !file.startsWith(publicDir + path.sep)) return null;
+  return file;
+}
 
 const LOGIN_ERRORS = {
   '1': 'Wrong password.',
@@ -81,13 +91,29 @@ export function buildApp({ store, bus, ingest }) {
 
   app.use('/api', requireAuth, createApi({ store, bus, ingest }));
 
+  app.get(/^\/js\/[\w./-]+\.js$/, (req, res, next) => {
+    const file = publicFile(req.path);
+    const jsDir = path.join(publicDir, 'js') + path.sep;
+    if (!file || !file.startsWith(jsDir) || !fs.existsSync(file)) return next();
+    const code = bustModuleSpecifiers(fs.readFileSync(file, 'utf8'), assetVersion);
+    res.setHeader('Cache-Control', 'no-cache');
+    res.type('js').send(code);
+  });
+
+  app.get(/^\/css\/[\w./-]+\.css$/, (req, res, next) => {
+    const file = publicFile(req.path);
+    const cssDir = path.join(publicDir, 'css') + path.sep;
+    if (!file || !file.startsWith(cssDir) || !fs.existsSync(file)) return next();
+    res.setHeader('Cache-Control', 'no-cache');
+    res.type('css').send(fs.readFileSync(file));
+  });
+
   app.use(
-    express.static(path.join(root, '../public'), {
+    express.static(publicDir, {
       index: false,
       etag: true,
-      setHeaders(res, filePath) {
-        if (filePath.endsWith('.html')) res.setHeader('Cache-Control', 'no-store');
-        else res.setHeader('Cache-Control', 'public, max-age=86400');
+      setHeaders(res) {
+        res.setHeader('Cache-Control', 'no-cache');
       },
     }),
   );
@@ -106,6 +132,6 @@ function sendHtml(res, name, replacements = {}) {
   for (const [key, value] of Object.entries(replacements)) {
     html = html.replaceAll(key, value);
   }
-  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Cache-Control', 'no-cache');
   res.type('html').send(html);
 }

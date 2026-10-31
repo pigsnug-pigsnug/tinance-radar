@@ -76,5 +76,3 @@ export function renderFeed(stage) {
     }`;
   stage.scrollTop = scroll;
 }
-
-export function renderRail() {}

@@ -131,28 +131,6 @@ const handlers = {
       }
     });
   },
-  async 'watch-add'() {
-    const input = document.getElementById('watch-input');
-    const word = input?.value.trim();
-    if (!word) return;
-    input.value = '';
-    return guard(async () => {
-      const words = [...state.watchwords, word];
-      const result = await api('/api/watchwords', { method: 'PUT', body: { words } });
-      state.watchwords = result.watchwords;
-      touch();
-      render({ force: true });
-    });
-  },
-  'watch-remove'(word) {
-    return guard(async () => {
-      const words = state.watchwords.filter((item) => item !== word);
-      const result = await api('/api/watchwords', { method: 'PUT', body: { words } });
-      state.watchwords = result.watchwords;
-      touch();
-      render({ force: true });
-    });
-  },
   outcome(id, el) {
     return guard(async () => {
       const result = await api(`/api/launches/${encodeURIComponent(id)}`, {

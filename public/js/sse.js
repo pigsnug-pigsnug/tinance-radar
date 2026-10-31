@@ -1,4 +1,3 @@
-import { pingAlert } from './alerts.js';
 import { state, touch, upsertItems, upsertTopics } from './state.js';
 
 export function connectStream(onChange) {
@@ -11,7 +10,6 @@ export function connectStream(onChange) {
     takeId(ev);
     upsertItems(data.items);
     upsertTopics(data.topics);
-    for (const alert of data.alerts || []) pingAlert(alert);
     onChange('all');
   });
   stream.addEventListener('topics', (ev) => {
