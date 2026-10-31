@@ -1,9 +1,9 @@
 import { istClock } from './format.js';
 import { fillHealth, liveCount } from './render-health.js';
-import { renderMarket } from './render-market.js';
 import { renderDesk } from './render-desk.js';
-import { renderFeed, renderRail } from './render-pulse.js';
-import { renderRadar } from './render-radar.js';
+import { renderFeed } from './render-pulse.js';
+import { renderSolana } from './render-solana.js';
+import { renderWrite } from './render-write.js';
 import { state } from './state.js';
 
 let frame = 0;
@@ -32,15 +32,6 @@ function isEditing(root) {
 
 export function render({ force = false, scope = 'all' } = {}) {
   try {
-    if (scope === 'market') {
-      renderMarket();
-      paintMeta();
-      return;
-    }
-    if (scope === 'radar' && state.tab !== 'radar') {
-      paintMeta();
-      return;
-    }
     renderView({ force });
   } catch (error) {
     state.banner = error?.message || 'The desk hit a render error';
@@ -50,21 +41,18 @@ export function render({ force = false, scope = 'all' } = {}) {
 
 function renderView({ force = false } = {}) {
   document.documentElement.dataset.theme = state.tab === 'sol' ? 'sol' : 'night';
-  renderMarket();
   paintChrome();
   const stage = document.getElementById('stage');
   const rail = document.getElementById('rail');
   const skipStage = !force && isEditing(stage);
-  const skipRail = !force && isEditing(rail);
-  queued = skipStage || skipRail;
-  if (state.tab === 'radar') renderRadar(stage);
-  else if (!skipStage) {
+  queued = skipStage;
+  if (!skipStage) {
     if (state.tab === 'desk') renderDesk(stage);
-    else renderFeed(stage, { sol: state.tab === 'sol' });
+    else if (state.tab === 'sol') renderSolana(stage);
+    else if (state.tab === 'write') renderWrite(stage);
+    else renderFeed(stage);
   }
-  if (!skipRail && state.tab !== 'desk') renderRail(rail);
-  if (state.tab === 'desk') rail.hidden = true;
-  else rail.hidden = false;
+  if (rail) rail.hidden = true;
   paintMeta();
   const health = document.getElementById('health-dialog');
   if (health?.open) fillHealth();
@@ -81,12 +69,7 @@ export function scheduleRender(scope = 'all') {
     const scopes = new Set(pending);
     pending.clear();
     if (scopes.has('all') || scopes.size === 0) render();
-    else if (scopes.has('radar') && scopes.size === 1) render({ scope: 'radar' });
-    else if (scopes.has('market') && !scopes.has('radar')) render({ scope: 'market' });
-    else if (scopes.has('radar') && scopes.has('market')) {
-      renderMarket();
-      render({ scope: 'radar' });
-    } else render();
+    else render();
   });
 }
 

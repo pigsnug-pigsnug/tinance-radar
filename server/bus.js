@@ -10,7 +10,7 @@ export function createBus() {
       const record = { id: ++seq, event, data, ts: Date.now() };
       // Radar, market, and health are snapshots. Keep one of each so a wake
       // does not replay hundreds of frames into the browser before the first click.
-      if (event === 'radar' || event === 'market' || event === 'health') {
+      if (event === 'radar' || event === 'market' || event === 'health' || event === 'cards' || event === 'solana') {
         const prev = events.findIndex((row) => row.event === event);
         if (prev !== -1) events.splice(prev, 1);
       }

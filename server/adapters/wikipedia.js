@@ -56,18 +56,23 @@ export default {
       spikes.push({ ...row, prev });
       if (spikes.length >= 12) break;
     }
-    const chosen = spikes.length ? spikes : recent.articles.filter((row) => !SKIP.test(row.article) && !row.article.includes(':')).slice(0, 12);
+    if (!spikes.length) throw new Error('no pageview spike');
     return keep(
-      chosen.map((row) => {
+      spikes.map((row) => {
         const title = row.article.replace(/_/g, ' ');
         const prev = row.prev;
+        const views = Number(row.views) || 0;
+        const summary = prev?.views
+          ? `People opened this page ${views.toLocaleString('en-US')} times on ${recent.label}. Yesterday it was #${prev.rank} with ${Number(prev.views).toLocaleString('en-US')} views.`
+          : `This page jumped onto the most-read list at #${row.rank}, with ${views.toLocaleString('en-US')} views on ${recent.label}. It was not in yesterday's top pages.`;
         return toItem({
           source: 'wikipedia',
           title,
           url: `https://en.wikipedia.org/wiki/${encodeURIComponent(row.article)}`,
-          summary: prev
-            ? `${row.views.toLocaleString('en-US')} views on ${recent.label} · was #${prev.rank}`
-            : `${row.views.toLocaleString('en-US')} views on ${recent.label}`,
+          summary,
+          body: summary,
+          spike: true,
+          reach: true,
           publishedAt: Date.now(),
         });
       }),

@@ -55,7 +55,7 @@ test('the store drops items that are not absolute source urls', async () => {
   });
   store.ingestItems([
     { source: 'reddit', title: 'Bonk mascot rally is back', url: '/relative/nope' },
-    { source: 'hackernews', title: 'Voyager marks a light day', url: 'https://science.nasa.gov/mission/voyager/' },
+    { source: 'hackernews', title: 'Voyager marks a light day', url: 'https://science.nasa.gov/mission/voyager/', score: 80 },
   ]);
   const items = [...store.items.values()];
   assert.equal(items.length, 1);

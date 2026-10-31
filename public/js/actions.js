@@ -1,5 +1,6 @@
 import { api } from './api.js';
 import { closeModal, copyDraft, openLaunch, openNote, openTweet, saveLaunch, saveNote, showWhy } from './modal.js';
+import { grokImageUrl, grokWriteUrl } from './render-write.js';
 import { fillHealth } from './render-health.js';
 import { itemById, state, touch } from './state.js';
 import { render } from './view.js';
@@ -27,6 +28,25 @@ const handlers = {
     state.platform = id;
     touch();
     render({ force: true });
+  },
+  lane(id) {
+    state.lane = id;
+    touch();
+    render({ force: true });
+  },
+  'copy-tweet'(id) {
+    const card = (state.cards || []).find((row) => row.id === id);
+    const text = card?.tweet || '';
+    if (!text) return;
+    return navigator.clipboard?.writeText(text).catch(() => {});
+  },
+  'open-grok'() {
+    const text = document.getElementById('grok-seed')?.value || '';
+    window.open(grokWriteUrl(text), '_blank', 'noopener');
+  },
+  'open-imagine'() {
+    const text = document.getElementById('grok-seed')?.value || '';
+    window.open(grokImageUrl(text), '_blank', 'noopener');
   },
   mode(id) {
     state.mode = id;

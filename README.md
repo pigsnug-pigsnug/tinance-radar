@@ -11,9 +11,9 @@ npm start
 
 Open http://127.0.0.1:4317
 
-Deploy to Railway: create a service from this repo, set `AUTH_PASSWORD` (and `FIREBASE_SERVICE_ACCOUNT` if you want the desk to sync), then deploy. The start command is `npm start` and the healthcheck is `/health`. Step-by-step is in [Railway](#railway).
+Deploy on Render from `main`. Set `AUTH_PASSWORD` (and `FIREBASE_SERVICE_ACCOUNT` if you want the desk to sync). Start command is `npm start`. Health check is `/health`.
 
-Personal trend desk for timing Solana memecoin launches. It watches free public sources, clusters headlines into topics, and scores whether a narrative is speeding up across platforms.
+Personal trend desk for Solana launches. It watches free public sources only. A story hits Pulse when it clears the filter and shows up on at least two sources.
 
 The browser is vanilla ES modules. There is no build step. The server is Node.js and Express. User data and the velocity snapshot live in Firestore when you configure it, and in a local JSON file when you do not.
 
@@ -34,12 +34,12 @@ npm test
 
 ## What you can do
 
-- **Pulse** — mixed feed with platform chips, search, latest/heat/starred/saved. Multi-signal badge opens a “why” note (sources and shared phrases). Velocity is mentions-per-hour change, not “seen again this cycle.” Star, save, note, launch, and tweet on each card. Buttons are one delegated listener (`data-action` / `data-id`) over a long-lived `Map`, so a deploy cannot orphan them.
-- **Radar** — live pump.fun creates over the pumpportal socket, king-of-the-hill when the REST API answers, a topic word cloud, and a DexScreener coin check.
-- **SOL Web** — the same tape filtered to Solana, in `#9945FF`, with a ◎ mark.
-- **Desk** — launch log (score frozen at open, outcome edited later), public wallets, bills, and a notes pad.
-- **Watch words** — stored on the server. A new matching item pushes an SSE event and the page plays a short Web Audio ping after you have clicked once.
-- **Market strip** — SOL/USD from CoinGecko, plus 24h DEX volume for Solana, Ethereum, BNB Chain, and Base from DeFiLlama. Cells flash when the number changes.
+- **Pulse** — one feed. Breaking or funny stories only, and only after two sources agree. Each card has a short summary, the source links, a coin name and ticker, a launch tweet, Post to X, and three image prompts that open in Grok.
+- **Solana** — a slower scan (about every 12 minutes) for the whole word Solana inside GitHub READMEs, YouTube captions (with a timestamp), and Reddit post bodies.
+- **Desk** — launch log, watch words (they ping in the page), wallets, bills, notes.
+- **Write tweet** — type a narrative and open Grok or Grok Imagine with the style guide already in the link. No API key.
+
+Free sources that answered here: BBC world RSS, Guardian world RSS, Al Jazeera, Wikipedia pageviews, Hacker News, Reddit listings when they are not blocked, getdaytrends for X trend names. AP's RSS returned 403. Reuters' old RSS is gone. trends24 sits behind a Cloudflare check from this network. GitHub code search returns 401 unless `GITHUB_TOKEN` is set; README search works without it. YouTube captions are best-effort and skipped when a video has none. X post counts and reply-to tweet ids are not on the free trend list, so Reply launch appears only when an id is actually known.
 
 ## Architecture
 
@@ -83,29 +83,15 @@ Auth, when `AUTH_PASSWORD` is set, is an httpOnly HMAC cookie. Firestore is touc
 
 | Adapter | What it reads | Cadence |
 | --- | --- | --- |
-| `reddit` | Atom/RSS for r/CryptoCurrency, r/solana, r/memecoins, r/CryptoMoonShots | 3 min |
-| `google-trends` | Google Trends RSS, United States | 10 min |
-| `hackernews` | Firebase top stories | 3 min |
-| `hn-solana` | Algolia `search_by_date` for solana | 5 min |
-| `devto` | Dev.to API, top week + `tag=solana` | 10 min |
-| `x-trends` | trends24.in United States. If that host blocks the server, getdaytrends.com is the fallback and the row says so | 10 min |
-| `tiktok` | trends24 TikTok pages, then TikTok Creative Center, then Exploding Topics growth chips if those are blocked | 15 min |
-| `aljazeera` | Al Jazeera all-news RSS | 10 min |
-| `google-news` | Google News RSS for Solana / pump.fun | 5 min |
-| `youtube` | Channel RSS. Default is the official Solana channel | 10 min |
-| `cointelegraph` | CoinTelegraph RSS, kept when it mentions Solana | 5 min |
-| `decrypt` | Decrypt RSS, same filter | 5 min |
-| `dexscreener` | Latest Solana token profiles and top boosts | 2 min |
-| `geckoterminal` | Trending Solana pools | 2 min |
-| `pumpfun` | King of the hill and recent graduations, when the REST host answers | 2 min |
-| `pumpfun-ws` | `wss://pumpportal.fun/api/data` creates and migrations | live |
-| `wikipedia` | Pageviews top articles, spikes versus the previous day | 30 min |
-| `polymarket` | Gamma markets with heavy 24h volume or a fast hourly move | 5 min |
-| `telegram` | Public `t.me/s/<channel>` previews | 5 min |
-| `bluesky` | Jetstream firehose. Counts tracked phrases per minute. Not an X login. | live |
-| `market` | DeFiLlama chain DEX volume + CoinGecko SOL/USD | 1 min |
+| `reddit` | Hot and top from the whitelist, including r/all top. Ranked by upvote velocity | 5 min |
+| `hackernews` | Front page, points floor | 3 min |
+| `x-trends` | US trend names from getdaytrends, with trends24 as a fallback | 10 min |
+| `aljazeera` | Al Jazeera RSS | 10 min |
+| `wikipedia` | Pageview spikes versus the day before, in plain language | 30 min |
+| `news` | BBC world RSS and Guardian world RSS | 10 min |
+| `solana-scan` | GitHub READMEs, optional code search, YouTube captions, Reddit bodies | 12 min |
 
-Nitter is not used.
+Every Pulse item still has to pass the filter: no content farms, enough engagement, no sports, religion, elections, gossip, or war, then two sources at once, then a breaking or funny lane.
 
 If a host is blocked, that row in **Sources** goes `error` or `open` and the rest of the desk keeps running. `/health` is a small public check for Railway. `/api/health` is the full panel (and requires the cookie when auth is on).
 
@@ -118,12 +104,12 @@ If a host is blocked, that row in **Sources** goes `error` or `open` and the res
 | `AUTH_SECRET` | HMAC key for the cookie. Defaults to `AUTH_PASSWORD`. |
 | `FIREBASE_SERVICE_ACCOUNT` | Service-account JSON, one line, or base64 of that JSON. |
 | `MULTI_WINDOW_HOURS` | Multi-signal window. Default `6`. |
-| `MULTI_MIN_SOURCES` | Outlets required. Default `3`. |
+| `MULTI_MIN_SOURCES` | Outlets required before a Pulse card. Default `2`. |
 | `SNAPSHOT_INTERVAL_MS` | How often the topic/item snapshot is written. Default `300000`. |
 | `DATA_DIR` | File fallback directory. Default `data`. |
-| `TELEGRAM_CHANNELS` | Comma-separated public channels. Default `cointelegraph,WatcherGuru`. |
-| `YOUTUBE_CHANNEL_IDS` | Comma-separated channel ids. Default is Solana’s channel. |
-| `BLUESKY_MIN_COUNT` | Mentions in a minute before a Bluesky row is emitted. Default `5`. |
+| `GITHUB_TOKEN` | Optional. Unlocks GitHub code search. README search works without it. |
+| `YOUTUBE_CHANNEL_IDS` | Comma-separated channel ids for the caption scan. Default is Solana’s channel. |
+| `HN_MIN_POINTS` | Hacker News floor. Default `40`. |
 
 ## Firestore
 
@@ -164,10 +150,10 @@ The cookie is marked `Secure` when the request is HTTPS (Railway’s proxy sets 
 ## Limits
 
 - One operator. The password is the whole account; there is no multi-user model.
-- Bluesky is the public Jetstream firehose filtered down to a few dozen phrases. It is a mention counter, not a search index, and a small host can feel it.
-- pump.fun’s REST API often blocks datacenter IPs. The websocket path is the one that usually works; king-of-the-hill fails soft.
-- trends24 TikTok pages 404. The TikTok adapter falls through to Creative Center and then to Exploding Topics, and says so in the summary when it does.
-- Reddit’s `.json` endpoints often 403 this kind of host. The Atom feed on `www.reddit.com` is what the adapter uses.
-- CoinGecko’s free price route rate-limits. The last SOL price is kept and marked stale.
+- Reddit’s `.json` endpoints often 403 a datacenter. The RSS fallback has no upvote counts, so those rows fail the velocity check instead of being guessed.
+- trends24 is often a Cloudflare challenge. getdaytrends still supplies trend names. It does not give post counts or tweet ids.
+- AP’s RSS returned 403 from this network. Reuters no longer publishes the old public RSS.
+- GitHub code search is 401 without `GITHUB_TOKEN`. README search is unauthenticated.
+- YouTube caption tracks are missing on a lot of videos. Those videos are skipped.
 - Topic phrases are heuristic. Broad words (`solana`, `bitcoin`, `etf` alone) are not cluster keys, on purpose, so the whole tape does not collapse into one topic.
 - This is a reading desk, not a trading bot. It does not place orders or hold keys. Wallet rows reject strings that look like private keys.

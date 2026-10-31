@@ -7,15 +7,13 @@ export const state = {
   watchwords: [],
   launches: [],
   desk: { wallets: [], bills: [], notes: '' },
-  market: null,
-  radar: { tokens: [], graduations: [], koth: null, connected: false, error: '' },
   health: [],
-  coin: { q: '', pairs: [], error: '', loading: false },
-  config: { multiWindowH: 6, minSources: 3, auth: false, persistence: 'file' },
+  cards: [],
+  solana: [],
+  lane: 'all',
+  config: { multiWindowH: 6, minSources: 2, auth: false, persistence: 'file' },
   tab: 'pulse',
-  platform: 'all',
   query: '',
-  mode: 'latest',
   seq: 0,
   rev: 0,
   ready: false,
@@ -47,9 +45,9 @@ export function applyBootstrap(data) {
     bills: data.desk?.bills || [],
     notes: data.desk?.notes || '',
   };
-  state.market = data.market || null;
-  state.radar = data.radar || state.radar;
   state.health = data.health || [];
+  state.cards = data.cards || [];
+  state.solana = data.solana || [];
   state.config = { ...state.config, ...(data.config || {}) };
   state.seq = data.seq || 0;
   state.ready = true;
@@ -101,6 +99,16 @@ export function platformCounts() {
   return [...counts.entries()].sort((a, b) => b[1] - a[1]);
 }
 
+export function visibleCards() {
+  const query = state.query.trim().toLowerCase();
+  return (state.cards || []).filter((card) => {
+    if (state.lane !== 'all' && card.lane !== state.lane) return false;
+    if (!query) return true;
+    const blob = `${card.title} ${card.summary} ${card.name} ${card.ticker} ${(card.sources || []).map((row) => row.source).join(' ')}`.toLowerCase();
+    return query.split(/\s+/).filter(Boolean).every((part) => blob.includes(part));
+  });
+}
+
 export function visibleItems() {
   const query = state.query.trim().toLowerCase();
   let rows;
@@ -112,7 +120,7 @@ export function visibleItems() {
     rows = [...state.items.values()];
   }
   if (state.tab === 'sol') rows = rows.filter((item) => (item.tags || []).includes('solana'));
-  if (state.platform !== 'all') rows = rows.filter((item) => item.source === state.platform);
+  if (state.platform && state.platform !== 'all') rows = rows.filter((item) => item.source === state.platform);
   rows = rows.filter((item) => matchesQuery(item, query));
   if (state.mode === 'heat') {
     rows.sort(

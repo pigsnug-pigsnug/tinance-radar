@@ -1,6 +1,24 @@
 import { esc, safeUrl } from './format.js';
 import { state } from './state.js';
 
+function watchBlock() {
+  return `<section class="panel">
+    <header class="panel-head"><h2>Watch words</h2><p>A new hit pings once, on any tab, after you have clicked the page.</p></header>
+    <form class="watch-form" data-action="watch-add">
+      <input id="watch-input" type="text" maxlength="40" placeholder="bonk, raccoon, hack…" />
+      <button type="submit" class="big">Add</button>
+    </form>
+    <ul class="watch-list">
+      ${state.watchwords
+        .map(
+          (word) =>
+            `<li><span>${esc(word)}</span><button type="button" data-action="watch-remove" data-id="${esc(word)}" aria-label="Remove ${esc(word)}">×</button></li>`,
+        )
+        .join('') || '<li class="quiet">None yet</li>'}
+    </ul>
+  </section>`;
+}
+
 const OUTCOMES = [
   ['pending', 'Pending'],
   ['worked', 'Worked'],
@@ -17,6 +35,7 @@ export function renderDesk(stage) {
   const scroll = stage.scrollTop;
   stage.innerHTML = `
     <div class="desk">
+      ${watchBlock()}
       <section class="panel desk-launches">
         <header class="panel-head">
           <h2>Launch log</h2>

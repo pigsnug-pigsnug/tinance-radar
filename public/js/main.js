@@ -43,7 +43,7 @@ window.addEventListener('keydown', (event) => {
     return;
   }
   if (typing || event.metaKey || event.ctrlKey || event.altKey) return;
-  const tabs = { 1: 'pulse', 2: 'radar', 3: 'sol', 4: 'desk' };
+  const tabs = { 1: 'pulse', 2: 'sol', 3: 'desk', 4: 'write' };
   if (tabs[event.key]) {
     state.tab = tabs[event.key];
     state.platform = 'all';

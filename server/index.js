@@ -6,9 +6,7 @@ import { createStore } from './store.js';
 import { createRunner } from './runner.js';
 import adapters from './adapters/index.js';
 import { startIngest } from './ingest.js';
-import { startBluesky } from './live/bluesky.js';
-import { startPump } from './live/pump.js';
-import { startMarket } from './market.js';
+import { startSolana } from './adapters/solana.js';
 import { buildApp } from './app.js';
 
 process.on('unhandledRejection', (error) => {
@@ -34,9 +32,7 @@ const runners = adapters.map((adapter) => createRunner(adapter));
 for (const runner of runners) status.set(runner.name, runner.status());
 
 const ingest = startIngest({ runners, store, bus, status });
-startBluesky({ store, status });
-startPump({ store, status });
-startMarket({ store, status });
+startSolana({ store, status });
 
 const app = buildApp({ store, bus, ingest });
 const server = app.listen(config.port, '0.0.0.0', () => {

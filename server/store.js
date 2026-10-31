@@ -2,7 +2,8 @@ import crypto from 'node:crypto';
 import { stableId } from './ids.js';
 import { isUsefulPhrase, mentionsSolana } from './phrases.js';
 import { ALWAYS_SOL_SOURCES } from './config.js';
-import { canonicalUrl, dexScreenerUrl, pumpFunUrl } from './links.js';
+import { canonicalUrl } from './links.js';
+import { buildCards, screenItem } from './pipeline.js';
 
 const ITEM_CAP = 400;
 
@@ -19,6 +20,15 @@ export function compactItem(item) {
     phrases: item.phrases || [],
     topicId: item.topicId || '',
     tags: item.tags || [],
+    score: item.score || 0,
+    comments: item.comments || 0,
+    body: item.body || '',
+    subreddit: item.subreddit || '',
+    spike: Boolean(item.spike),
+    tweetId: item.tweetId || '',
+    postCount: item.postCount || '',
+    proofUrl: item.proofUrl || '',
+    reach: Boolean(item.reach),
   };
 }
 
@@ -83,6 +93,7 @@ export function createStore({ cluster, persist, bus, config }) {
     updatedAt: 0,
   };
   let market = null;
+  let solana = [];
   let userTimer = null;
   let snapshotTimer = null;
   let radarTimer = null;
@@ -224,17 +235,27 @@ export function createStore({ cluster, persist, bus, config }) {
       };
       console.log(`[tinance-radar] hydrated ${items.size} items, ${cluster.list().length} topics (${persist.mode})`);
     },
+    cards(now = Date.now()) {
+      const list = [...items.values()].map(compactItem);
+      return buildCards(list, topicsPayload(), { minSources: config.minSources, now });
+    },
+    setSolana(list) {
+      solana = (list || []).slice(0, 40);
+      bus.publish('solana', { items: solana });
+      return solana;
+    },
     ingestItems(rawItems, now = Date.now()) {
       const fresh = [];
       const alerts = [];
       const touched = new Map();
-      let radarDirty = false;
       for (const raw of rawItems || []) {
         const title = String(raw.title || '').replace(/\s+/g, ' ').trim();
         if (title.length < 3) continue;
         const url = canonicalUrl(raw.url, raw.urlBase);
         if (!url) continue;
-        const source = String(raw.source || 'unknown').toLowerCase();
+        const screened = screenItem({ ...raw, url }, now);
+        if (!screened) continue;
+        const source = screened.source;
         const id = stableId(source, title);
         const existing = items.get(id);
         const tags = new Set([...(raw.tags || []), ...(existing?.tags || [])]);
@@ -250,8 +271,17 @@ export function createStore({ cluster, persist, bus, config }) {
           source,
           title,
           url,
-          summary: String(raw.summary || '').replace(/\s+/g, ' ').trim().slice(0, 360),
-          publishedAt: Number(raw.publishedAt) || now,
+          summary: String(screened.summary || '').replace(/\s+/g, ' ').trim().slice(0, 500),
+          body: String(screened.body || '').replace(/\s+/g, ' ').trim().slice(0, 1200),
+          score: screened.score || 0,
+          comments: screened.comments || 0,
+          subreddit: screened.subreddit || '',
+          spike: Boolean(screened.spike),
+          tweetId: screened.tweetId || '',
+          postCount: screened.postCount || '',
+          proofUrl: canonicalUrl(screened.proofUrl) || '',
+          reach: Boolean(screened.reach),
+          publishedAt: Number(screened.publishedAt) || now,
           fetchedAt: now,
           tickers: result.signals?.tickers || [],
           phrases: result.signals?.phrases || [],
@@ -264,23 +294,6 @@ export function createStore({ cluster, persist, bus, config }) {
         if (result.topic) touched.set(result.topic.id, result.topic);
         for (const word of matchWords(item, user.watchwords)) {
           alerts.push({ itemId: id, word, title: item.title, source });
-        }
-        if (raw.extra?.kind === 'koth') {
-          const mint = raw.extra.mint || '';
-          radar.koth = {
-            ...compact,
-            mint,
-            marketCap: raw.extra.marketCap || 0,
-            symbol: raw.extra.symbol || '',
-            pumpUrl: mint ? pumpFunUrl(mint) : '',
-            dexUrl: mint ? dexScreenerUrl(mint) : '',
-          };
-          radarDirty = true;
-        }
-        if (raw.extra?.kind === 'graduation') {
-          radar.graduations.unshift({ ...compact, kind: 'graduation', ts: now });
-          radar.graduations = radar.graduations.slice(0, 12);
-          radarDirty = true;
         }
       }
       if (items.size > ITEM_CAP) {
@@ -299,8 +312,8 @@ export function createStore({ cluster, persist, bus, config }) {
       const topics = [...touched.values()].map((topic) => publicTopic(topic, config.multiWindowMs));
       if (fresh.length || alerts.length || topics.length) {
         bus.publish('batch', { items: fresh, topics, alerts });
+        bus.publish('cards', { cards: this.cards(now) });
       }
-      if (radarDirty) publishRadar();
       return { fresh, alerts, topics };
     },
     rescore(now = Date.now()) {
@@ -326,6 +339,8 @@ export function createStore({ cluster, persist, bus, config }) {
         market,
         radar,
         health: extra.health || [],
+        cards: this.cards(),
+        solana,
         config: {
           multiWindowH: config.multiWindowMs / 3_600_000,
           minSources: config.minSources,

@@ -19,17 +19,17 @@ export function connectStream(onChange) {
     upsertTopics(JSON.parse(ev.data).topics);
     onChange('all');
   });
-  stream.addEventListener('market', (ev) => {
+  stream.addEventListener('cards', (ev) => {
     takeId(ev);
-    state.market = JSON.parse(ev.data);
+    state.cards = JSON.parse(ev.data).cards || [];
     touch();
-    onChange('market');
+    onChange('all');
   });
-  stream.addEventListener('radar', (ev) => {
+  stream.addEventListener('solana', (ev) => {
     takeId(ev);
-    state.radar = JSON.parse(ev.data);
+    state.solana = JSON.parse(ev.data).items || [];
     touch();
-    onChange('radar');
+    onChange('all');
   });
   stream.addEventListener('health', (ev) => {
     takeId(ev);

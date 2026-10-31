@@ -1,6 +1,4 @@
 import { Router } from 'express';
-import { dexScreenerUrl, gmgnUrl, pumpFunUrl } from './links.js';
-import { getJson } from './net.js';
 
 function fail(res, error) {
   const status = error.status || 500;
@@ -134,36 +132,6 @@ export function createApi({ store, bus, ingest }) {
 
   router.put('/desk/notes', (req, res) => {
     res.json({ notes: store.setDeskNotes(req.body?.notes) });
-  });
-
-  router.get('/coin', async (req, res) => {
-    const q = String(req.query.q || '').trim();
-    if (q.length < 2) return res.status(400).json({ error: 'query too short' });
-    try {
-      const data = await getJson(`https://api.dexscreener.com/latest/dex/search?q=${encodeURIComponent(q)}`);
-      const pairs = (data.pairs || []).slice(0, 12).map((pair) => {
-        const address = pair.baseToken?.address || '';
-        const gmgn = pair.chainId === 'solana' ? gmgnUrl(address) : '';
-        return {
-          chain: pair.chainId,
-          dex: pair.dexId,
-          name: `${pair.baseToken?.symbol || '?'}/${pair.quoteToken?.symbol || '?'}`,
-          base: pair.baseToken?.name || '',
-          symbol: pair.baseToken?.symbol || '',
-          address,
-          price: pair.priceUsd || null,
-          vol: pair.volume?.h24 ?? null,
-          liq: pair.liquidity?.usd ?? null,
-          change: pair.priceChange?.h24 ?? null,
-          url: gmgn || pair.url || '',
-          dexUrl: pair.url || (gmgn ? dexScreenerUrl(address) : ''),
-          pumpUrl: gmgn && /pump$/i.test(address) ? pumpFunUrl(address) : '',
-        };
-      });
-      res.json({ pairs });
-    } catch (error) {
-      res.status(502).json({ error: error.message || 'dexscreener unavailable' });
-    }
   });
 
   return router;

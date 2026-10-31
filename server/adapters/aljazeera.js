@@ -18,6 +18,7 @@ export default {
           url: item.link,
           urlBase: 'https://www.aljazeera.com/',
           summary: item.summary,
+          body: item.summary,
           publishedAt: parseTime(item.pubDate),
         }),
       ),

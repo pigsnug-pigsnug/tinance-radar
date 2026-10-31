@@ -1,25 +1,14 @@
 const PLATFORMS = {
   reddit: 'Reddit',
   hackernews: 'HN',
-  'hn-solana': 'HN · SOL',
-  devto: 'DEV',
-  'google-trends': 'Trends',
   x: 'X',
-  tiktok: 'TikTok',
-  aljazeera: 'Jazeera',
-  'google-news': 'News',
+  aljazeera: 'Al Jazeera',
+  wikipedia: 'Wikipedia',
+  bbc: 'BBC',
+  guardian: 'Guardian',
   youtube: 'YouTube',
-  cointelegraph: 'CoinTelegraph',
-  decrypt: 'Decrypt',
-  bluesky: 'Bluesky',
-  dexscreener: 'Dex',
-  geckoterminal: 'Gecko',
-  pumpfun: 'pump.fun',
-  wikipedia: 'Wiki',
-  polymarket: 'Polymarket',
-  telegram: 'Telegram',
-  market: 'Market',
-  'pumpfun-ws': 'pump socket',
+  github: 'GitHub',
+  'solana-scan': 'Solana scan',
 };
 
 export function esc(value) {
@@ -81,6 +70,10 @@ export function istClock(date = new Date()) {
     second: '2-digit',
     hour12: false,
   }).format(date);
+}
+
+export function highlightSolana(value) {
+  return esc(value).replace(/\b(solana)\b/gi, '<mark>$1</mark>');
 }
 
 export function signedInt(value) {
