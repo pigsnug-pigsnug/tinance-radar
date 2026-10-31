@@ -1,0 +1,46 @@
+import { getJson } from '../net.js';
+import { parseTime } from '../time.js';
+import { keep, toItem } from './shape.js';
+
+async function mapPool(list, limit, fn) {
+  const out = new Array(list.length);
+  let cursor = 0;
+  async function worker() {
+    while (cursor < list.length) {
+      const index = cursor;
+      cursor += 1;
+      out[index] = await fn(list[index]);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, list.length) }, () => worker()));
+  return out;
+}
+
+export default {
+  name: 'hackernews',
+  intervalMs: 3 * 60 * 1000,
+  async fetch() {
+    const ids = await getJson('https://hacker-news.firebaseio.com/v0/topstories.json');
+    if (!Array.isArray(ids) || !ids.length) throw new Error('empty front page');
+    const stories = await mapPool(ids.slice(0, 15), 5, async (id) => {
+      try {
+        return await getJson(`https://hacker-news.firebaseio.com/v0/item/${id}.json`);
+      } catch {
+        return null;
+      }
+    });
+    const items = keep(
+      stories.filter(Boolean).map((story) =>
+        toItem({
+          source: 'hackernews',
+          title: story.title,
+          url: story.url || `https://news.ycombinator.com/item?id=${story.id}`,
+          summary: `${story.score || 0} points · ${story.descendants || 0} comments · ${story.by || 'hn'}`,
+          publishedAt: parseTime(story.time),
+        }),
+      ),
+    );
+    if (!items.length) throw new Error('no stories parsed');
+    return items;
+  },
+};

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="night">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Tinance Radar</title>
+    <link rel="icon" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,500;6..72,600&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/css/app.css?v=__V__" />
+  </head>
+  <body>
+    <div id="app">
+      <header class="top">
+        <div class="brand">
+          <span class="brand-mark">Tinance Radar</span>
+          <span class="brand-sub">v2 · night desk</span>
+        </div>
+        <div id="market" class="market" aria-label="Markets"></div>
+        <div class="tools">
+          <label class="search">
+            <span class="sr">Search the tape</span>
+            <input id="q" type="search" placeholder="Search the tape" autocomplete="off" />
+          </label>
+          <button type="button" id="sweep" data-action="sweep">Sweep</button>
+          <button type="button" id="health-btn" data-action="health">Sources</button>
+          <time id="clock" datetime=""></time>
+          <form method="post" action="/logout" id="logout-form">
+            <button type="submit">Lock</button>
+          </form>
+        </div>
+      </header>
+      <nav class="tabs" aria-label="Sections">
+        <button type="button" data-action="tab" data-id="pulse">Pulse</button>
+        <button type="button" data-action="tab" data-id="radar">Radar</button>
+        <button type="button" data-action="tab" data-id="sol"><span class="sol-mark">◎</span> SOL Web</button>
+        <button type="button" data-action="tab" data-id="desk">Desk</button>
+      </nav>
+      <div id="layout">
+        <main id="stage">
+          <p class="empty">Opening the tape…</p>
+        </main>
+        <aside id="rail"></aside>
+      </div>
+      <footer id="meta"></footer>
+    </div>
+    <dialog id="modal"></dialog>
+    <dialog id="health-dialog" aria-labelledby="health-title"></dialog>
+    <div id="pop" role="tooltip" hidden></div>
+    <div id="live" class="sr" aria-live="polite"></div>
+    <noscript><p class="empty">Tinance Radar needs JavaScript for the live tape.</p></noscript>
+    <script type="module" src="/js/main.js?v=__V__"></script>
+  </body>
+</html>

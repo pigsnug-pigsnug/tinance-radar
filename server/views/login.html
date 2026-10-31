@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="night">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Unlock · Tinance Radar</title>
+    <link rel="icon" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,500;6..72,600&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/css/app.css?v=__V__" />
+  </head>
+  <body class="login-body">
+    <main class="login-card">
+      <p class="eyebrow">Night desk</p>
+      <h1>Tinance Radar</h1>
+      <p class="lede">The tape is locked. The password is the one in <span class="mono">AUTH_PASSWORD</span> on the server.</p>
+      <form method="post" action="/login">
+        <label>
+          Password
+          <input type="password" name="password" autocomplete="current-password" required autofocus />
+        </label>
+        <button type="submit">Unlock</button>
+      </form>
+      <p class="error">__ERROR__</p>
+    </main>
+  </body>
+</html>
